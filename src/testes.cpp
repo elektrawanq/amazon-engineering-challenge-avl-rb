@@ -9,19 +9,25 @@
 
 #include "../include/AVL_Tree.hpp"
 #include "../include/RB_Tree.hpp"
-#include "../include/testes.hpp"
+#include "../include/teste2.hpp"
 
 using namespace std;
 using namespace std::chrono;
 using val_tp = int;
 
+// Tempo decorrido em milissegundos com parte fracionária
+// (com ms inteiros, operações rápidas como o cenário 5 sempre davam 0)
+static double elapsedMs(const high_resolution_clock::time_point& start) {
+    return duration<double, milli>(high_resolution_clock::now() - start).count();
+}
+
 // Função para gerar dados aleatórios sem duplicatas
 vector<val_tp> generateRandomData(val_tp size, bool allow_duplicates) {
     vector<val_tp> data(size);
-    mt19937 gen(42); 
+    mt19937 gen(42);
     uniform_int_distribution<> dist(1, size * 10);
-    
-    for(val_tp i = 0; i < size; ++i) {
+
+    for (val_tp i = 0; i < size; ++i) {
         data[i] = dist(gen);
     }
     if (!allow_duplicates) {
@@ -33,23 +39,28 @@ vector<val_tp> generateRandomData(val_tp size, bool allow_duplicates) {
 }
 
 // Função utilitária para imprimir métricas formatadas
-void printMetrics(const string& treeName, long long timeMs, val_tp rotations, val_tp height) {
-    cout << left << setw(4) << treeName 
-    << " -> Tempo: " << setw(5) << timeMs << "ms | "
-    << "Rotações: " << setw(8) << rotations << " | "
-    << "Altura Final: " << height << "\n";
+void printMetrics(const string& treeName, double timeMs, val_tp rotations, val_tp height) {
+    cout << left << setw(4) << treeName
+         << " -> Tempo: " << fixed << setprecision(3) << setw(9) << timeMs << "ms | "
+         << "Rotações: " << setw(8) << rotations << " | "
+         << "Altura Final: " << height << "\n";
+    cout.unsetf(ios::fixed);
 }
 
 // Para exportar o csv
-void exportToCSV(const string& treeName, const string& cenario, val_tp size, long long timeMs, val_tp rotations, val_tp height) {
-    ofstream file("metrics.csv", ios::app);
-    // Escreve o cabeçalho apenas se o arquivo for recém-criado
-    file.seekp(0, ios::end);
-    if (file.tellp() == 0) {
+void exportToCSV(const string& treeName, const string& cenario, val_tp size, double timeMs, val_tp rotations, val_tp height) {
+    // Na primeira chamada de cada execução o arquivo é recriado (trunc),
+    // evitando linhas repetidas quando o programa é rodado várias vezes.
+    // Nas chamadas seguintes (outros tamanhos / cenários) apenas acrescenta.
+    static bool first_call = true;
+    ofstream file("metrics.csv", first_call ? ios::trunc : ios::app);
+    if (first_call) {
         file << "Arvore,Cenario,Tamanho,Tempo_ms,Rotacoes,Altura\n";
+        first_call = false;
     }
-    file << treeName << "," << cenario << "," << size << "," << timeMs << "," << rotations << "," << height << "\n";
-    file.close();
+    file << treeName << "," << cenario << "," << size << ","
+         << fixed << setprecision(3) << timeMs << ","
+         << rotations << "," << height << "\n";
 }
 
 void runTests(val_tp num_elements) {
@@ -63,6 +74,9 @@ void runTests(val_tp num_elements) {
     vector<val_tp> desc_data = asc_data;
     reverse(desc_data.begin(), desc_data.end());
 
+    // Tamanho real após remover duplicatas geradas aleatoriamente (pode ser < num_elements)
+    const val_tp real_size = static_cast<val_tp>(random_data.size());
+
     // ==========================================
     // CENÁRIO 1: INSERÇÃO CRESCENTE
     // ==========================================
@@ -72,16 +86,16 @@ void runTests(val_tp num_elements) {
 
     auto start = high_resolution_clock::now();
     for (val_tp val : asc_data) avl_asc.insert(val);
-    auto duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    double duration = elapsedMs(start);
     printMetrics("AVL", duration, avl_asc.rotation_count, avl_asc.get_height());
     exportToCSV("AVL", "Insercao_Crescente", num_elements, duration, avl_asc.rotation_count, avl_asc.get_height());
 
     start = high_resolution_clock::now();
     for (val_tp val : asc_data) rb_asc.insert(val);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("RB", duration, rb_asc.rotation_count, rb_asc.get_height());
     exportToCSV("RB", "Insercao_Crescente", num_elements, duration, rb_asc.rotation_count, rb_asc.get_height());
-    
+
     // ==========================================
     // CENÁRIO 2: INSERÇÃO DECRESCENTE
     // ==========================================
@@ -91,13 +105,13 @@ void runTests(val_tp num_elements) {
 
     start = high_resolution_clock::now();
     for (val_tp val : desc_data) avl_desc.insert(val);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("AVL", duration, avl_desc.rotation_count, avl_desc.get_height());
     exportToCSV("AVL", "Insercao_Decrescente", num_elements, duration, avl_desc.rotation_count, avl_desc.get_height());
 
     start = high_resolution_clock::now();
     for (val_tp val : desc_data) rb_desc.insert(val);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("RB", duration, rb_desc.rotation_count, rb_desc.get_height());
     exportToCSV("RB", "Insercao_Decrescente", num_elements, duration, rb_desc.rotation_count, rb_desc.get_height());
 
@@ -110,13 +124,16 @@ void runTests(val_tp num_elements) {
 
     start = high_resolution_clock::now();
     for (val_tp val : random_data) avl_rand.insert(val);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("AVL", duration, avl_rand.rotation_count, avl_rand.get_height());
+    // CORREÇÃO: este cenário não estava sendo exportado para o CSV
+    exportToCSV("AVL", "Insercao_Aleatoria", num_elements, duration, avl_rand.rotation_count, avl_rand.get_height());
 
     start = high_resolution_clock::now();
     for (val_tp val : random_data) rb_rand.insert(val);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("RB", duration, rb_rand.rotation_count, rb_rand.get_height());
+    exportToCSV("RB", "Insercao_Aleatoria", num_elements, duration, rb_rand.rotation_count, rb_rand.get_height());
 
     // ==========================================
     // CENÁRIO 4: INSERÇÃO DE ELEMENTOS REPETIDOS
@@ -124,20 +141,20 @@ void runTests(val_tp num_elements) {
     // ==========================================
     cout << "\n> CENÁRIO 4: INSERÇÃO DE DUPLICATAS (10% dos elementos)\n";
     avl_rand.rotation_count = 0; rb_rand.rotation_count = 0; // Reset contadores
-    val_tp num_duplicates = num_elements * 0.10;
-    
+    // CORREÇÃO: baseado no tamanho real do vetor, evitando acesso fora dos limites
+    val_tp num_duplicates = static_cast<val_tp>(real_size * 0.10);
+
     start = high_resolution_clock::now();
     for (val_tp i = 0; i < num_duplicates; ++i) avl_rand.insert(random_data[i]);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("AVL", duration, avl_rand.rotation_count, avl_rand.get_height());
     exportToCSV("AVL", "Insercao_de_Duplicatas", num_elements, duration, avl_rand.rotation_count, avl_rand.get_height());
 
     start = high_resolution_clock::now();
     for (val_tp i = 0; i < num_duplicates; ++i) rb_rand.insert(random_data[i]);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("RB", duration, rb_rand.rotation_count, rb_rand.get_height());
     exportToCSV("RB", "Insercao_de_Duplicatas", num_elements, duration, rb_rand.rotation_count, rb_rand.get_height());
-
 
     // ==========================================
     // CENÁRIO 5: REMOÇÃO DE INEXISTENTES
@@ -147,32 +164,33 @@ void runTests(val_tp num_elements) {
 
     start = high_resolution_clock::now();
     for (val_tp i = -1; i >= -100; --i) avl_rand.remove(i);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("AVL", duration, avl_rand.rotation_count, avl_rand.get_height());
-    exportToCSV("AVL", "Remoção_de_Inexistentes", num_elements, duration, avl_rand.rotation_count, avl_rand.get_height());
+    // CORREÇÃO: nomes de cenário sem acento (nomes de arquivo/gráficos mais seguros)
+    exportToCSV("AVL", "Remocao_de_Inexistentes", num_elements, duration, avl_rand.rotation_count, avl_rand.get_height());
 
     start = high_resolution_clock::now();
     for (val_tp i = -1; i >= -100; --i) rb_rand.remove(i);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("RB", duration, rb_rand.rotation_count, rb_rand.get_height());
-    exportToCSV("RB", "Remoção_de_Inexistentes", num_elements, duration, rb_rand.rotation_count, rb_rand.get_height());
+    exportToCSV("RB", "Remocao_de_Inexistentes", num_elements, duration, rb_rand.rotation_count, rb_rand.get_height());
 
     // ==========================================
     // CENÁRIO 6: REMOÇÃO ALEATÓRIA (50% dos dados)
     // ==========================================
     cout << "\n> CENÁRIO 6: REMOÇÃO ALEATÓRIA (50% da carga)\n";
     avl_rand.rotation_count = 0; rb_rand.rotation_count = 0;
-    val_tp half_elements = num_elements / 2;
+    val_tp half_elements = real_size / 2;
 
     start = high_resolution_clock::now();
     for (val_tp i = 0; i < half_elements; ++i) avl_rand.remove(random_data[i]);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("AVL", duration, avl_rand.rotation_count, avl_rand.get_height());
-    exportToCSV("AVL", "Remoção_Aleatória", num_elements, duration, avl_rand.rotation_count, avl_rand.get_height());
+    exportToCSV("AVL", "Remocao_Aleatoria", num_elements, duration, avl_rand.rotation_count, avl_rand.get_height());
 
     start = high_resolution_clock::now();
     for (val_tp i = 0; i < half_elements; ++i) rb_rand.remove(random_data[i]);
-    duration = duration_cast<milliseconds>(high_resolution_clock::now() - start).count();
+    duration = elapsedMs(start);
     printMetrics("RB", duration, rb_rand.rotation_count, rb_rand.get_height());
-    exportToCSV("RB", "Remoção_Aleatória", num_elements, duration, rb_rand.rotation_count, rb_rand.get_height());
+    exportToCSV("RB", "Remocao_Aleatoria", num_elements, duration, rb_rand.rotation_count, rb_rand.get_height());
 }

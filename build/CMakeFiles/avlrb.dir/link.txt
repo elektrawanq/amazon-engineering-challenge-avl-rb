@@ -1,1 +1,0 @@
-/usr/bin/c++  -Wall -pedantic CMakeFiles/avlrb.dir/src/main.cpp.o CMakeFiles/avlrb.dir/src/testes.cpp.o -o avlrb 

@@ -1,0 +1,11 @@
+cat >> .gitignore << 'EOF'
+metrics.csv
+graficos_slides/
+__pycache__/
+*.o
+*.out
+main
+EOF
+build/
+amazon_challenge
+Makefile

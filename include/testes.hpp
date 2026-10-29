@@ -8,7 +8,7 @@ using val_tp = int;
 
 // Estrutura para armazenar métricas
 struct Metrics {
-    long long duration_ms;
+    double duration_ms;
     int rotations;
     int final_height;
 };
@@ -17,9 +17,10 @@ struct Metrics {
 std::vector<int> generateRandomData(val_tp size, bool allow_duplicates = false);
 
 // Função utilitária para imprimir métricas formatadas
-void printMetrics(const string& treeName, long long timeMs, val_tp rotations, val_tp height);
+void printMetrics(const string& treeName, double timeMs, val_tp rotations, val_tp height);
 
-void exportToCSV(const string& treeName, const string& cenario, val_tp size, long long timeMs, val_tp rotations, val_tp height);
+// Exporta uma linha para metrics.csv (o arquivo é recriado na primeira chamada de cada execução)
+void exportToCSV(const string& treeName, const string& cenario, val_tp size, double timeMs, val_tp rotations, val_tp height);
 
 void runTests(int num_elements);
 
