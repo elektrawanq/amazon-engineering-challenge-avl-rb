@@ -1,0 +1,3 @@
+/home/leticia-queiroz/Documentos/EDB2/amazon-engineering-challenge-avl-rb/build/CMakeFiles/avlrb.dir
+/home/leticia-queiroz/Documentos/EDB2/amazon-engineering-challenge-avl-rb/build/CMakeFiles/edit_cache.dir
+/home/leticia-queiroz/Documentos/EDB2/amazon-engineering-challenge-avl-rb/build/CMakeFiles/rebuild_cache.dir
